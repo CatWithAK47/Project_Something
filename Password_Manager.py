@@ -1,4 +1,4 @@
-import json as jn
+import json
 import tkinter as tk
 from tkinter import simpledialog
 from cryptography.fernet import Fernet
@@ -21,7 +21,7 @@ key_filename = "secret_key.key"
 if os.path.exists('secret_key.key'):
     with open('secret_key.key', 'rb') as key_file:
         fernet_key = key_file.read()
-        print(fernet_key)
+
 else:
     fernet_key = Fernet.generate_key()
     with open('secret_key.key', 'wb') as key_file:
@@ -33,14 +33,19 @@ fernet = Fernet(fernet_key)
 
 password_list = {}
 
-with open('encrypted_passwords.csv', 'r') as f:
-    encrypted_data = f.read().strip()
-    print(encrypted_data)
-
-json_encrypted_data = jn.dumps(encrypted_data)
-encrypted_json = fernet.encrypt(json_encrypted_data.encode('utf-8'))
-decrypted_data = fernet.decrypt(encrypted_json).decode('utf-8')
+if os.path.exists('encrypted_passwords.csv'):
+    with open('encrypted_passwords.csv', 'rb') as f:
+        encrypted_data = f.read()
         
+        try:
+            if encrypted_data:
+                decrypted_json = fernet.decrypt(encrypted_data).decode('utf-8')
+                password_list = json.loads(decrypted_json)
+        except Exception as e:
+            print("You changed something... you probably either deleted your key or changed the encrypted stuff...")
+            print(f"An unexpected error occured: {e}")
+
+
 listbox.delete(0, tk.END)
 for item in password_list:
     listbox.insert(tk.END, item)
@@ -78,13 +83,14 @@ def add():
     listbox.insert(tk.END, app)
 
 def save():
-    json_encrypted_data = jn.dumps(encrypted_data)
-    encrypted_json = fernet.encrypt(json_encrypted_data.encode('utf-8'))
-    
-    with open('encrypted_passwords.csv', 'w', newline='') as f:
-        f.write(str(encrypted_json))
+    unencrypted_data = json.dumps(password_list)
+    encrypted_bytes = fernet.encrypt(unencrypted_data.encode("utf-8"))
 
-    print(fernet.decrypt(encrypted_json).decode('utf-8'))
+    if os.path.exists('encrypted_passwords.csv'):
+        with open('encrypted_passwords.csv', 'wb') as data:
+            data.write(encrypted_bytes)
+
+
 
     print("Passwords Saved Successfully.")
 
@@ -123,9 +129,3 @@ tk.Button(window, text="Display Current Item", command=display_content).pack(pad
 tk.Button(window, text="Quit", command=quit).pack(pady=10)
 
 window.mainloop()
-list = [1, 2, 3, 4, 5]
-
-list_squared = [i ** 2 for i in list]
-
-print(list_squared)
-
